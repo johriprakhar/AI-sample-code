@@ -384,6 +384,7 @@ kbd {
   margin: 0 0 8px;
 }
 .footer__note { margin: 0; }
+.footer__author { margin: 10px 0 0; }
 
 @media (max-width: 520px) {
   .masthead h1 { font-size: 1.35rem; }

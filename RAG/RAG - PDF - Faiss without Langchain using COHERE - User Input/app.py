@@ -15,6 +15,9 @@ SECURITY: there is no authentication on these endpoints. Every visitor can
 spend your Cohere credits and read the indexed document. Keep the default
 127.0.0.1 binding unless you have put your own auth/proxy in front of it, and
 never run this with `--host 0.0.0.0` on an untrusted network.
+
+Author:
+    Prakhar Johri — https://www.linkedin.com/in/johriprakhar/
 """
 
 from __future__ import annotations

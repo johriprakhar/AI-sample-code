@@ -2,6 +2,9 @@
 
 All tunables live here. Secrets are read from the environment (loaded from a
 local `.env` file when present) and are never hard-coded.
+
+Author:
+    Prakhar Johri — https://www.linkedin.com/in/johriprakhar/
 """
 
 import os

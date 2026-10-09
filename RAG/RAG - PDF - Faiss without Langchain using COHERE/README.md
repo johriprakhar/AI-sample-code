@@ -266,3 +266,7 @@ question ──SentenceTransformer──> vector
 `IndexFlatL2` is an exact, brute-force L2 index. It's the right choice at this
 scale — no training, no approximation, no tuning. For very large corpora you'd
 move to an approximate index such as `IndexIVFFlat`.
+
+## Author
+
+**Prakhar Johri** — [LinkedIn](https://www.linkedin.com/in/johriprakhar/)

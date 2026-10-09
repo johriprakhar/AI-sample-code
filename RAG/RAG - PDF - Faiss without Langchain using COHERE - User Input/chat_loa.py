@@ -8,6 +8,9 @@ Usage:
     python chat_loa.py ask "your question"   # single question
     python chat_loa.py chat                  # interactive loop
     python chat_loa.py chat --rebuild        # rebuild first, then chat
+
+Author:
+    Prakhar Johri — https://www.linkedin.com/in/johriprakhar/
 """
 
 from __future__ import annotations
