@@ -1,0 +1,393 @@
+/* PDF RAG web UI -------------------------------------------------------- */
+
+:root {
+  --bg: #0f1117;
+  --surface: #171a23;
+  --surface-2: #1f2430;
+  --border: #2b313f;
+  --text: #e7e9ee;
+  --text-muted: #9aa3b2;
+  --accent: #5b8cff;
+  --accent-ink: #ffffff;
+  --ok: #3ecf8e;
+  --warn: #e8b339;
+  --error: #ff6b6b;
+  --radius: 10px;
+  --wrap: 820px;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg: #f5f6f9;
+    --surface: #ffffff;
+    --surface-2: #f0f2f7;
+    --border: #d9dde6;
+    --text: #1b1f2a;
+    --text-muted: #5d6676;
+    --accent: #2b5fd9;
+    --ok: #16794c;
+    --warn: #8a6100;
+    --error: #b3261e;
+  }
+}
+
+* { box-sizing: border-box; }
+
+/* The browser's own `[hidden] { display: none }` is a user-agent rule, so any
+   author-level `display` further down this file would beat it — which silently
+   breaks every element the JS toggles via the `hidden` attribute (.loader and
+   .banner both set display:flex). Re-assert it here, in author origin. */
+[hidden] { display: none !important; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 16px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+.wrap {
+  width: 100%;
+  max-width: var(--wrap);
+  margin-inline: auto;
+  padding-inline: 20px;
+}
+
+/* Visible-on-focus skip link for keyboard users */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  background: var(--accent);
+  color: var(--accent-ink);
+  padding: 10px 16px;
+  z-index: 10;
+  border-radius: 0 0 var(--radius) 0;
+}
+.skip-link:focus { left: 0; }
+
+/* Header ----------------------------------------------------------------- */
+.masthead {
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  padding: 28px 0 22px;
+}
+.masthead h1 {
+  margin: 0;
+  font-size: 1.6rem;
+  letter-spacing: -0.01em;
+}
+.tagline {
+  margin: 6px 0 0;
+  color: var(--text-muted);
+  font-size: 0.95rem;
+}
+
+main { padding-block: 24px 8px; }
+
+/* Cards ------------------------------------------------------------------ */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  margin-bottom: 18px;
+}
+.card__title {
+  margin: 0 0 14px;
+  font-size: 1.05rem;
+}
+
+/* Banners ---------------------------------------------------------------- */
+.banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 11px 14px;
+  margin-bottom: 18px;
+  font-size: 0.9rem;
+  background: var(--surface-2);
+}
+.banner__dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  flex: none;
+}
+.banner--ok { border-color: color-mix(in srgb, var(--ok) 45%, var(--border)); }
+.banner--ok .banner__dot { background: var(--ok); }
+.banner--error {
+  border-color: color-mix(in srgb, var(--error) 50%, var(--border));
+  background: color-mix(in srgb, var(--error) 12%, var(--surface));
+  color: var(--text);
+}
+.banner--error .banner__dot { background: var(--error); }
+
+/* Form ------------------------------------------------------------------- */
+.field-label {
+  display: block;
+  font-weight: 600;
+  font-size: 0.92rem;
+  margin-bottom: 8px;
+}
+.field {
+  width: 100%;
+  padding: 12px 14px;
+  font: inherit;
+  color: var(--text);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  resize: vertical;
+}
+.field:focus-visible,
+.btn:focus-visible,
+.chip:focus-visible,
+summary:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+.field[aria-invalid="true"] { border-color: var(--error); }
+
+/* Two flex items only — the hint and the counter. Keeping the hint inside its
+   own span stops each `kbd` and text node becoming a separately spaced item. */
+.field-help {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 8px 0 16px;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+.field-hint { white-space: nowrap; }
+.char-count { font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+kbd {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-bottom-width: 2px;
+  border-radius: 5px;
+  padding: 1px 5px;
+  font: 600 0.78rem/1 ui-monospace, "Cascadia Code", Consolas, monospace;
+}
+
+.actions { display: flex; gap: 10px; flex-wrap: wrap; }
+
+.btn {
+  font: 600 0.95rem/1 inherit;
+  padding: 11px 18px;
+  border-radius: var(--radius);
+  border: 1px solid transparent;
+  cursor: pointer;
+}
+.btn--primary { background: var(--accent); color: var(--accent-ink); }
+.btn--primary:hover:not(:disabled) { filter: brightness(1.08); }
+.btn--ghost {
+  background: transparent;
+  color: var(--text-muted);
+  border-color: var(--border);
+}
+.btn--ghost:hover { color: var(--text); }
+.btn:disabled { opacity: 0.55; cursor: not-allowed; }
+
+/* Example chips ---------------------------------------------------------- */
+.examples__title {
+  margin: 22px 0 10px;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-muted);
+}
+.examples {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.chip {
+  font: inherit;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 6px 13px;
+  cursor: pointer;
+}
+.chip:hover { color: var(--text); border-color: var(--accent); }
+
+/* Loader ----------------------------------------------------------------- */
+.loader {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  margin-bottom: 18px;
+}
+.loader__text { display: flex; flex-direction: column; }
+.loader__step { color: var(--text-muted); font-size: 0.85rem; }
+
+.spinner {
+  width: 26px;
+  height: 26px;
+  flex: none;
+  border: 3px solid color-mix(in srgb, var(--accent) 25%, transparent);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Respect users who ask for less motion: pulse instead of spin */
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation: pulse 1.4s ease-in-out infinite;
+    border-top-color: var(--accent);
+  }
+  @keyframes pulse { 50% { opacity: 0.35; } }
+}
+
+/* Result ----------------------------------------------------------------- */
+.result__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.result__head .card__title { margin: 0; }
+
+.badge {
+  font-size: 0.74rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+.badge--ok {
+  color: var(--ok);
+  border-color: color-mix(in srgb, var(--ok) 45%, var(--border));
+}
+.badge--warn {
+  color: var(--warn);
+  border-color: color-mix(in srgb, var(--warn) 45%, var(--border));
+}
+
+.result__question {
+  margin: 0 0 16px;
+  padding: 12px 14px;
+  background: var(--surface-2);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  font-size: 0.93rem;
+}
+.result__question-label {
+  display: block;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-muted);
+  margin-bottom: 2px;
+}
+
+.answer > :first-child { margin-top: 0; }
+.answer > :last-child { margin-bottom: 0; }
+.answer h3, .answer h4 { font-size: 1rem; margin: 18px 0 6px; }
+.answer p { margin: 0 0 12px; }
+.answer ul, .answer ol { margin: 0 0 12px; padding-left: 22px; }
+.answer li { margin-bottom: 5px; }
+.answer code {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1px 5px;
+  font: 0.88em/1.4 ui-monospace, Consolas, monospace;
+}
+
+/* Metadata grid ---------------------------------------------------------- */
+.meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+  margin: 20px 0 0;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+.meta__item dt {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  margin-bottom: 3px;
+}
+.meta__item dd {
+  margin: 0;
+  font-size: 0.92rem;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+/* Retrieved chunks ------------------------------------------------------- */
+.chunks { margin-top: 16px; }
+.chunks summary {
+  cursor: pointer;
+  font-size: 0.88rem;
+  font-weight: 600;
+  padding: 8px 0;
+}
+.muted { color: var(--text-muted); font-weight: 400; }
+.chunks__list { margin: 8px 0 0; padding-left: 22px; }
+.chunks__list li {
+  margin-bottom: 10px;
+  font-size: 0.86rem;
+  color: var(--text-muted);
+}
+.chunk__score {
+  display: inline-block;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.74rem;
+  color: var(--text-muted);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 1px 8px;
+  margin-bottom: 4px;
+}
+.chunk__text { margin: 0; white-space: pre-wrap; }
+
+/* Footer ----------------------------------------------------------------- */
+.footer {
+  border-top: 1px solid var(--border);
+  margin-top: 10px;
+  padding-block: 18px 32px;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+.footer__settings {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  margin: 0 0 8px;
+}
+.footer__note { margin: 0; }
+.footer__author { margin: 10px 0 0; }
+
+@media (max-width: 520px) {
+  .masthead h1 { font-size: 1.35rem; }
+  .card { padding: 16px; }
+  .actions .btn { flex: 1 1 auto; }
+}

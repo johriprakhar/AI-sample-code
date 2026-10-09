@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>HTML RAG &mdash; ask your document</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+  <a class="skip-link" href="#question">Skip to the question box</a>
+
+  <header class="masthead">
+    <div class="wrap">
+      <h1>Ask your HTML</h1>
+      <p class="tagline">
+        Semantic search over <strong>{{ settings.pdf }}</strong>, answered by Cohere.
+      </p>
+    </div>
+  </header>
+
+  <main class="wrap" id="main">
+
+    <!-- Pipeline status: filled in by /api/status -->
+    <div id="status-banner" class="banner banner--muted" role="status" aria-live="polite">
+      <span class="banner__dot" aria-hidden="true"></span>
+      <span id="status-text">Checking the vector store&hellip;</span>
+    </div>
+
+    <!-- Search form -->
+    <section class="card" aria-labelledby="ask-heading">
+      <h2 id="ask-heading" class="card__title">Your question</h2>
+
+      <form id="ask-form" novalidate>
+        <label class="field-label" for="question">
+          What do you want to know about this document?
+        </label>
+        <textarea
+          id="question"
+          name="question"
+          class="field"
+          rows="3"
+          maxlength="1000"
+          placeholder="e.g. What is this document about?"
+          aria-describedby="question-help"
+          required></textarea>
+
+        <p id="question-help" class="field-help">
+          <span class="field-hint">Press <kbd>Ctrl</kbd> + <kbd>Enter</kbd> to search.</span>
+          <span id="char-count" class="char-count">0 / 1000</span>
+        </p>
+
+        <div class="actions">
+          <button type="submit" id="ask-button" class="btn btn--primary">
+            <span class="btn__label">Search document</span>
+          </button>
+          <button type="reset" id="clear-button" class="btn btn--ghost">Clear</button>
+        </div>
+      </form>
+
+      <h3 class="examples__title">Try one of these</h3>
+      <ul class="examples" id="examples">
+        <li><button type="button" class="chip">What is this document about?</button></li>
+        <li><button type="button" class="chip">Summarise the key points.</button></li>
+        <li><button type="button" class="chip">What topics are covered?</button></li>
+      </ul>
+    </section>
+
+    <!-- Loader: shown while /api/ask is in flight -->
+    <div id="loader" class="loader" role="status" aria-live="assertive" hidden>
+      <span class="spinner" aria-hidden="true"></span>
+      <span class="loader__text">
+        <strong>Searching the document&hellip;</strong>
+        <span id="loader-step" class="loader__step">Embedding your question</span>
+      </span>
+    </div>
+
+    <!-- Error output -->
+    <div id="error" class="banner banner--error" role="alert" hidden>
+      <span id="error-text"></span>
+    </div>
+
+    <!-- Answer output -->
+    <section id="result" class="card result" aria-labelledby="result-heading"
+             aria-live="polite" hidden>
+      <header class="result__head">
+        <h2 id="result-heading" class="card__title">Answer</h2>
+        <span id="result-badge" class="badge"></span>
+      </header>
+
+      <p class="result__question">
+        <span class="result__question-label">Question</span>
+        <span id="result-question"></span>
+      </p>
+
+      <div id="answer" class="answer"></div>
+
+      <dl class="meta">
+        <div class="meta__item">
+          <dt>Sources</dt>
+          <dd id="result-sources">&mdash;</dd>
+        </div>
+        <div class="meta__item">
+          <dt>Best match distance</dt>
+          <dd id="result-score">&mdash;</dd>
+        </div>
+        <div class="meta__item">
+          <dt>Threshold</dt>
+          <dd id="result-threshold">&mdash;</dd>
+        </div>
+        <div class="meta__item">
+          <dt>Answered in</dt>
+          <dd id="result-elapsed">&mdash;</dd>
+        </div>
+      </dl>
+
+      <details id="chunks-wrap" class="chunks" hidden>
+        <summary>Retrieved context <span id="chunks-count" class="muted"></span></summary>
+        <ol id="chunks" class="chunks__list"></ol>
+      </details>
+    </section>
+  </main>
+
+  <footer class="footer wrap">
+    <p class="footer__settings">
+      <span><strong>Document:</strong> {{ settings.pdf }}</span>
+      <span><strong>Embeddings:</strong> {{ settings.embedding_model }}</span>
+      <span><strong>Chat model:</strong> {{ settings.chat_model }}</span>
+      <span><strong>Top-k:</strong> {{ settings.top_k }}</span>
+      <span><strong>Threshold:</strong> {{ settings.threshold }}</span>
+    </p>
+    <p class="footer__note">
+      Lower distance means a closer match. Questions whose nearest chunk is
+      farther than the threshold are rejected before any API call is made.
+    </p>
+    <p class="footer__author">
+      Built by <strong>Prakhar Johri</strong> &mdash;
+      <a href="https://www.linkedin.com/in/johriprakhar/"
+         target="_blank" rel="noopener noreferrer">LinkedIn</a>
+    </p>
+  </footer>
+
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
