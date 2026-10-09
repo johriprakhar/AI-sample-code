@@ -4,6 +4,9 @@ Ask questions about a PDF. The script chunks the PDF, embeds the chunks locally
 with a sentence-transformer model, stores the vectors in a FAISS index, then
 answers questions by retrieving the closest chunks and passing them to Cohere.
 
+Two front ends share that one pipeline: a CLI (`chat_loa.py`) and a browser UI
+(`app.py`, Flask).
+
 LangChain is used only for PDF loading and text splitting — there are no chains,
 retrievers, or agents.
 
@@ -12,10 +15,15 @@ retrievers, or agents.
 | File | Purpose |
 | --- | --- |
 | `chat_loa.py` | The pipeline and CLI. |
+| `app.py` | Flask web UI — browser search page over the same pipeline. |
+| `templates/index.html` | The search page. |
+| `static/css/styles.css` | Page styling. |
+| `static/js/app.js` | Form handling, loader, result rendering. |
 | `config.py` | Every tunable setting. Reads overrides from `.env`. |
 | `env.example` | Template for `.env`. Copy it, don't edit it in place. |
 | `.env` | Your secrets and overrides. Git-ignored. You create this. |
 | `requirements.txt` | Dependencies. |
+| `docs/screenshots/` | UI reference images used by this README. |
 | `Vector_Store/` | Generated index + chunk table. Git-ignored. |
 | `chat_loa_notebook.ipynb` | The original notebook this was converted from. |
 
@@ -127,6 +135,91 @@ python chat_loa.py --help                       # full CLI help
 Running with no subcommand defaults to `chat`. In the interactive loop, type
 `exit` or `quit` (or press Ctrl+C) to leave.
 
+## Web UI
+
+Same pipeline, in a browser. Build the index first (step 4 above), then:
+
+```powershell
+python app.py
+```
+
+Open <http://127.0.0.1:5000>. Type a question, press **Search document** (or
+<kbd>Ctrl</kbd>+<kbd>Enter</kbd>), and a spinner runs until the answer comes
+back.
+
+![The web UI with an answer rendered: status banner, question box, answer text, sources, retrieval distance metadata, and the collapsible retrieved-context panel.](docs/screenshots/web-ui-answer.png) The result panel shows the answer, its sources, the nearest-chunk
+distance, the threshold it was compared against, the wall-clock time, and a
+collapsible **Retrieved context** section with the exact chunks that were fed
+to Cohere.
+
+A banner at the top reports whether the vector store loaded, and how many
+vectors it holds. If the index is missing or `COHERE_API_KEY` is unset, that
+banner tells you so and the search button stays disabled — you get the real
+reason in the page instead of a stack trace.
+
+Flags:
+
+```powershell
+python app.py --port 8000     # different port
+python app.py --debug         # Flask reloader + debugger
+python app.py --host 0.0.0.0  # expose on your network (see the warning below)
+```
+
+The first search of each run loads the embedding model, so it takes a few extra
+seconds. After that the model, index, and Cohere client are cached for the life
+of the process.
+
+### Security
+
+**These endpoints have no authentication.** Anyone who can reach the port can
+query your indexed document and spend your Cohere credits. The default binding
+is `127.0.0.1`, which accepts connections only from your own machine — keep it
+that way unless you put your own auth or a reverse proxy in front. `--host
+0.0.0.0` opens the app to every machine on your network and prints a warning.
+
+`app.run()` is Flask's development server. It is single-process and not hardened
+for public traffic; use a production WSGI server (waitress, gunicorn) behind
+real auth if you ever need to deploy this.
+
+Requests are capped at a 64 KB body and 1000 characters per question. Answers
+are rendered from a small, deliberately limited markdown subset applied *after*
+HTML-escaping, so neither your input nor the model's output can inject markup.
+
+### HTTP API
+
+The page is a thin client over two JSON endpoints, usable on their own:
+
+| Endpoint | Method | Returns |
+| --- | --- | --- |
+| `/api/status` | GET | `{ready, settings}` — `200` when the pipeline loaded, `503` with an `error` when it didn't. |
+| `/api/ask` | POST | The answer object below. `400` on empty or over-long input, `503` if the pipeline can't load, `502` if retrieval or Cohere fails. |
+
+```powershell
+$body = @{ question = "what is this document about?" } | ConvertTo-Json
+Invoke-RestMethod -Uri http://127.0.0.1:5000/api/ask -Method POST `
+  -ContentType "application/json" -Body $body
+```
+
+```jsonc
+{
+  "question":   "what is this document about?",
+  "answered":   true,          // false when the distance gate rejected it
+  "answer":     "This document is ...",
+  "sources":    ["sample-pdf"],
+  "scores":     [0.9243, 0.9636, 0.9873, 1.0299, 1.0431],
+  "best_score": 0.9243,        // compared against threshold
+  "threshold":  1.7,
+  "chunks":     ["...", "..."] // empty when rejected
+}
+```
+
+A rejected question returns HTTP `200` with `answered: false` and the
+`IRRELEVANT_QUERY_MESSAGE` as the answer — it's a valid result, not an error,
+and no Cohere call is made. The UI labels it **No relevant match**.
+
+This is the same dict `chat_loa.answer_query()` returns, so the CLI and the web
+UI can't drift apart.
+
 ### Swapping to a different PDF
 
 Re-run steps 3 and 4 — copy the new file in, change `PDF_PATH`, then rebuild.
@@ -236,6 +329,36 @@ from the local cache and start fast.
 **Cohere 401 / unauthorized.**
 Bad or expired key. Regenerate it in the Cohere dashboard and update `.env`.
 
+**Web UI: `ModuleNotFoundError: No module named 'flask'`.**
+Install from the updated requirements: `python -m pip install -r requirements.txt`.
+
+**Web UI: the top banner is red.**
+It prints the same message the CLI would. Missing index means run
+`python chat_loa.py build`; missing key means fix `.env`. Reload the page after
+correcting it — the pipeline is cached per process, so a failed load isn't
+retried silently.
+
+**Web UI: `Address already in use` / port 5000 taken.**
+Something else holds the port (on macOS it's often AirPlay). Use
+`python app.py --port 8000`.
+
+**Web UI: first search feels slow, later ones are fast.**
+Expected. The embedding model loads on the first request only.
+
+**Web UI: the spinner stays up after the answer appears.**
+Fixed — see `docs/screenshots/web-ui-loader-stuck-bug.png` for what it looked
+like. The JS shows and hides panels with the `hidden` attribute, and the
+browser's `[hidden] { display: none }` is a *user-agent* rule, so any
+author-level `display` declaration (`.loader` and `.banner` both use
+`display: flex`) silently outranked it. `styles.css` now re-asserts
+`[hidden] { display: none !important; }` in author origin. If you add a
+component with its own `display` that the JS toggles, that one rule is what
+keeps it working — don't remove it.
+
+**Web UI: a hard refresh shows old behaviour.**
+Browsers cache `styles.css` and `app.js`. Reload with <kbd>Ctrl</kbd>+<kbd>F5</kbd>,
+or run `python app.py --debug`, which disables static caching.
+
 **Warnings on startup.**
 Three are expected and harmless:
 
@@ -261,6 +384,11 @@ question ──SentenceTransformer──> vector
          ──index.search(k=5)──> distances + chunk ids
          ──distance gate (> 1.7 → reject)
          ──chunks joined into prompt──> Cohere chat ──> answer + sources
+
+CLI       chat_loa.main ─┐
+                         ├─> chat_loa.answer_query() ──> result dict
+Web UI    app.py /api/ask┘                               (answer, sources,
+                                                          scores, chunks)
 ```
 
 `IndexFlatL2` is an exact, brute-force L2 index. It's the right choice at this
