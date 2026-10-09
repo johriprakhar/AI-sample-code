@@ -1,0 +1,19 @@
+# Install with: pip install -r requirements.txt
+
+python-dotenv==1.2.3
+numpy==2.5.3
+pandas>=2.2,<3.0
+
+# PDF loading
+pypdf>=5.0,<7.0
+langchain-community==0.4.2
+langchain-text-splitters==1.1.2
+
+# Embeddings
+sentence-transformers>=3.0,<6.0
+
+# Vector store
+faiss-cpu>=1.8,<2.0
+
+# LLM
+cohere>=5.13,<6.0
