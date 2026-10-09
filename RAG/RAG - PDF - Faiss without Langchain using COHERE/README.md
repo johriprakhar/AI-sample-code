@@ -13,7 +13,7 @@ retrievers, or agents.
 | --- | --- |
 | `chat_loa.py` | The pipeline and CLI. |
 | `config.py` | Every tunable setting. Reads overrides from `.env`. |
-| `.env.example` | Template for `.env`. Copy it, don't edit it in place. |
+| `env.example` | Template for `.env`. Copy it, don't edit it in place. |
 | `.env` | Your secrets and overrides. Git-ignored. You create this. |
 | `requirements.txt` | Dependencies. |
 | `Vector_Store/` | Generated index + chunk table. Git-ignored. |
@@ -52,7 +52,7 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy RemoteSigned
 ### 2. Create your `.env`
 
 ```powershell
-Copy-Item .env.example .env
+Copy-Item env.example .env
 ```
 
 Open `.env` and set your key:
@@ -87,8 +87,10 @@ Notes on this step:
   PDF where it is and give an absolute path instead:
   `PDF_PATH=C:\Users\you\Documents\document.pdf`
 - If the path has spaces, write it bare — no quotes: `PDF_PATH=My Report.pdf`
-- The default is `Rhea_resume.pdf`, which is not included in this repo. You must
-  supply your own PDF.
+- `env.example` ships the default `PDF_PATH=Rhea_resume.pdf`, which is *not*
+  included here. Change it, or the build fails with `PDF not found`. The folder
+  currently contains `sample-50-page-pdf-a4-size.pdf` if you want something to
+  try first.
 - Also update `DOCUMENT_SOURCE` in `.env` — that string is what gets printed
   under "Sources" for every answer, so set it to your document's origin
   (a URL, a filename, a system name, whatever is meaningful).
@@ -115,7 +117,7 @@ python chat_loa.py chat
 
 ```
 python chat_loa.py build                        # (re)build the index from the configured PDF
-python chat_loa.py ask "what are her skills?"   # one question, then exit
+python chat_loa.py ask "what is this document about?"   # one question, then exit
 python chat_loa.py chat                         # interactive loop
 python chat_loa.py chat --rebuild               # rebuild, then chat
 python chat_loa.py ask "..." --rebuild          # rebuild, then answer
@@ -137,19 +139,40 @@ sourced from the *old* document.
 ## Sample output
 
 ```
-Enter your query: what are her skills?
-Distance score: [[0.78 0.91 1.02 1.11 1.24]]
+> python chat_loa.py ask "what is the PDF version history?"
+Loading embedding model: all-MiniLM-L6-v2
+Distance score: [[0.7403685  0.76700425 0.7795146  0.84155285 0.8511428 ]]
 
 Bot Response:
-Based on the document, her skills include ...
+The PDF version history reflects the evolution of the Portable Document
+Format from its inception as a proprietary Adobe format to its current
+status as an open international standard. ...
 
 Sources:
-['www.rheadata.com']
+['sample-pdf']
 ```
 
 If the closest chunk is farther than `DISTANCE_THRESHOLD`, no Cohere call is
 made and you get `Please ask a relevant question.` instead. That's the relevance
 gate working, not an error.
+
+### Calibrating `DISTANCE_THRESHOLD`
+
+The inherited default of `1.7` is permissive. On a 50-page test PDF, on-topic
+questions scored around 0.74–0.92 and deliberate nonsense still scored about
+1.53 — under the threshold, so it got passed to Cohere anyway. The model then
+said the document doesn't cover it, which works, but costs an API call.
+
+Use the printed distance scores to tune it: ask a few good questions and a few
+off-topic ones, then set the threshold between the two clusters. Around `1.2`
+is a reasonable starting point for `all-MiniLM-L6-v2`. No rebuild needed, and
+you can try a value for one run without editing `.env`:
+
+```powershell
+$env:DISTANCE_THRESHOLD="1.2"; python chat_loa.py ask "your question"
+```
+
+Environment variables set in the shell take precedence over `.env`.
 
 ## Configuration reference
 
@@ -212,6 +235,18 @@ from the local cache and start fast.
 
 **Cohere 401 / unauthorized.**
 Bad or expired key. Regenerate it in the Cohere dashboard and update `.env`.
+
+**Warnings on startup.**
+Three are expected and harmless:
+
+- `langchain-community is being sunset` — only `PyPDFLoader` is used from it.
+- `huggingface_hub cache-system uses symlinks ... your machine does not support
+  them` — Windows without Developer Mode. Costs some disk, nothing else.
+- `You are sending unauthenticated requests to the HF Hub` — only affects
+  download rate limits on the one-time model fetch.
+
+Silence them all with `python chat_loa.py ask "..." 2>$null`, which routes
+stderr away while keeping the answer on stdout.
 
 ## How it works
 

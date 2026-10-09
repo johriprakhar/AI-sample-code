@@ -49,7 +49,7 @@ COHERE_API_KEY = os.getenv("COHERE_API_KEY")
 PDF_PATH = BASE_DIR / _env_str("PDF_PATH", "Rhea_resume.pdf")
 
 # Value stored in the `source` column for every chunk (used for citations).
-DOCUMENT_SOURCE = _env_str("DOCUMENT_SOURCE", "www.rheadata.com")
+DOCUMENT_SOURCE = _env_str("DOCUMENT_SOURCE", "sample-pdf")
 
 # --------------------------------------------------------------------------- #
 # Vector store
@@ -102,5 +102,5 @@ def validate() -> None:
     if not COHERE_API_KEY:
         raise RuntimeError(
             "COHERE_API_KEY is not set. Add it to your .env file "
-            "(see .env.example) or export it in your shell."
+            "(see env.example) or export it in your shell."
         )
